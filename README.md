@@ -16,6 +16,11 @@ Install tensorflow for CPU `pip install tensorflow==1.14.0` or for CUDA-enabled 
 
 #### Download a music audio tagging dataset:
 For example, download the [MagnaTagATune](https://github.com/keunwoochoi/magnatagatune-list) dataset.
+Once the 3 files containing the `mp3` have been downloaded, execute the following commands:
+```
+cat mp3.zip.* > mp3_all.zip
+unzip mp3_all.zip
+```
 
 #### Preprocess the dataset:
 To preprocess the data, first set some `config_file.py` variables:

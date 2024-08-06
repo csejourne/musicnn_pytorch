@@ -9,7 +9,7 @@ import tensorflow as tf
 import models
 import config_file, shared
 import pickle
-from tensorflow.python.framework import ops
+import torch
 
 
 def tf_define_model_and_cost(config):

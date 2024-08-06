@@ -1,9 +1,9 @@
-DATA_FOLDER =  '/home/jpons/musicnn-training/data/' # set your data folder
+DATA_FOLDER =  '/home/csej/Documents/Projects/genre_classification/musicnn-training/data/' # set your data folder
 
 config_preprocess = {
     'mtt_spec': {
         'identifier': 'mtt',                      # name for easy identification
-        'audio_folder': '/home/jpons/audio/mtt/', # end it with / -> this is an absolute path!
+        'audio_folder': '/home/csej/Documents/Projects/genre_classification/datasets/MagnaTagATune/mp3_all/', # end it with / -> this is an absolute path!
         'n_machines': 1,                          # parallelizing this process through 'n_machines'
         'machine_i': 0,                           # id number of the machine which is running this script (from 0 to n_machines-1)
         'num_processing_units': 20,               # number of parallel processes in every machine
