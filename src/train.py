@@ -16,10 +16,13 @@ from torch.utils.data import Dataset
 class ImageDataset(Dataset):
     def __init__(self, data_folder, file_index, file_ground_truth, transform=None, target_transform=None):
         self.data_folder = data_folder
+        self.ids, self.id2gt = shared.load_id2gt(file_ground_truth) # `ids` are `str`
         # 3 cols: index | freq-time repr as a `.pk` | mp3
-        self.index = pd.read_csv(file_index, header=None, sep='\t')
-        self.ground_truth = pd.read_csv(file_ground_truth, header=None, sep='\t')
-        self.ids, self.id2gt = shared.load_id2gt(file_ground_truth)
+        self.index = pd.read_csv(file_index, header=None, sep='\t') # contains all the data
+        # Only keep those relevant to the dataset
+        ids_int = [int(id) for id in self.ids]
+        self.index = self.index.loc[self.index[0].isin(ids_int)]
+        # Potential transformation
         self.transform = transform
         self.target_transform = target_transform
     
