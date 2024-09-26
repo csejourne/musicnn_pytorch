@@ -7,11 +7,12 @@ import random
 import pescador
 import numpy as np
 # import tensorflow as tf
-import models
+import models_baselines
 import config_file, shared
 import pickle as pk
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from torch import nn
 
 class ImageDataset(Dataset):
     def __init__(self, data_folder, file_index, file_ground_truth, transform=None, target_transform=None):
@@ -22,6 +23,7 @@ class ImageDataset(Dataset):
         # Only keep those relevant to the dataset
         ids_int = [int(id) for id in self.ids]
         self.index = self.index.loc[self.index[0].isin(ids_int)]
+        self.index = self.index.reset_index(drop=True)
         # Potential transformation
         self.transform = transform
         self.target_transform = target_transform
@@ -29,9 +31,12 @@ class ImageDataset(Dataset):
     def __len__(self):
         return len(self.ids)
 
-    def __getitem__(self, id):
+    def __getitem__(self, id_torch):
+        # WARNING: `id_torch` is handled by `torch` to iterate through the dataset. 
+        # it is different from the `id` of the files contained in `index.tsv`.
+        id = self.index.loc[id_torch, 0]
         # convert `img_path` to a `str`
-        img_path = self.index.loc[self.index[0] == id, 1].iloc[0]
+        img_path = self.index.loc[id_torch, 1]
         img_path = os.path.join(self.data_folder, img_path)
         # load from `.pk` file
         img_file = open(img_path, 'rb')
@@ -43,56 +48,25 @@ class ImageDataset(Dataset):
             label = self.target_transform(label)
         return image, label
 
-# def tf_define_model_and_cost(config):
-#     # tensorflow: define the model
-#     with tf.name_scope('model'):
-#         x = tf.compat.v1.placeholder(tf.float32, [None, config['xInput'], config['yInput']])
-#         y_ = tf.compat.v1.placeholder(tf.float32, [None, config['num_classes_dataset']])
-#         is_train = tf.compat.v1.placeholder(tf.bool)
-#         y = models.model_number(x, is_train, config)
-#         normalized_y = tf.nn.sigmoid(y)
-#         print(normalized_y.get_shape())
-#     print('Number of parameters of the model: ' + str(shared.count_params(tf.trainable_variables()))+'\n')
-#
-#     # tensorflow: define cost function
-#     with tf.name_scope('metrics'):
-#         # if you use softmax_cross_entropy be sure that the output of your model has linear units!
-#         cost = tf.losses.sigmoid_cross_entropy(multi_class_labels=y_, logits=y)
-#         if config['weight_decay'] != None:
-#             vars = tf.trainable_variables()
-#             lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in vars if 'kernel' in v.name ])
-#             cost = cost + config['weight_decay']*lossL2
-#             print('L2 norm, weight decay!')
-#
-#     # print all trainable variables, for debugging
-#     model_vars = [v for v in tf.global_variables()]
-#     for variables in model_vars:
-#         print(variables)
-#
-#     return [x, y_, is_train, y, normalized_y, cost]
 
-# def data_gen(id, audio_repr_path, gt, pack):
-#
-#     [config, sampling, param_sampling, augmentation] = pack
-#
-#     # load audio representation -> audio_repr shape: NxM
-#     audio_rep = pickle.load(open(config_file.DATA_FOLDER + audio_repr_path, 'rb'))
-#     if config['pre_processing'] == 'logEPS':
-#         audio_rep = np.log10(audio_rep + np.finfo(float).eps)
-#     elif config['pre_processing'] == 'logC':
-#         audio_rep = np.log10(10000 * audio_rep + 1)
-#
-#     # let's deliver some data!
-#     last_frame = int(audio_rep.shape[0]) - int(config['xInput']) + 1
-#     if sampling == 'random':
-#         for i in range(0, param_sampling):
-#             time_stamp = random.randint(0,last_frame-1)
-#             yield dict(X = audio_rep[time_stamp : time_stamp+config['xInput'], : ], Y = gt, ID = id)
-#
-#     elif sampling == 'overlap_sampling':
-#         for time_stamp in range(0, last_frame, param_sampling):
-#             yield dict(X = audio_rep[time_stamp : time_stamp+config['xInput'], : ], Y = gt, ID = id)
+def train_loop(dataloader, model, loss_fn, optimizer):
+    size = len(dataloader.dataset)
+    # Set the model to training mode - important for batch normalization and dropout layers
+    # Unnecessary in this situation but added for best practices
+    model.train()
+    for batch, (X, y) in enumerate(dataloader):
+        # Compute prediction and loss
+        pred = model(X)
+        loss = loss_fn(pred, y)
 
+        # Backpropagation
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        if batch % 100 == 0:
+            loss, current = loss.item(), batch * batch_size + len(X)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
 if __name__ == '__main__':
     # load config parameters defined in 'config_file.py'
@@ -143,12 +117,72 @@ if __name__ == '__main__':
     json.dump(config, open(model_folder + 'config.json', 'w'))
     print('\nConfig file saved: ' + str(config))
 
-    print('\nCREATE DATASET')
+    print('\nCREATE DATASET and DATALOADER')
     train_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_train)
+    val_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_val)
+    train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=True)
+
     print('\nEXPERIMENT: ', str(experiment_id))
+    model = models_baselines.Dieleman(config)
+    loss_fn = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=config['learning_rate'])
 
-    print("file running")
+    for t in range(config['epochs']):
+        print(f"Epoch {t+1}\n------------------")
+        train_loop(train_dataloader, model, loss_fn, optimizer)
+    print("done")
 
+# def tf_define_model_and_cost(config):
+#     # tensorflow: define the model
+#     with tf.name_scope('model'):
+#         x = tf.compat.v1.placeholder(tf.float32, [None, config['xInput'], config['yInput']])
+#         y_ = tf.compat.v1.placeholder(tf.float32, [None, config['num_classes_dataset']])
+#         is_train = tf.compat.v1.placeholder(tf.bool)
+#         y = models.model_number(x, is_train, config)
+#         normalized_y = tf.nn.sigmoid(y)
+#         print(normalized_y.get_shape())
+#     print('Number of parameters of the model: ' + str(shared.count_params(tf.trainable_variables()))+'\n')
+#
+#     # tensorflow: define cost function
+#     with tf.name_scope('metrics'):
+#         # if you use softmax_cross_entropy be sure that the output of your model has linear units!
+#         cost = tf.losses.sigmoid_cross_entropy(multi_class_labels=y_, logits=y)
+#         if config['weight_decay'] != None:
+#             vars = tf.trainable_variables()
+#             lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in vars if 'kernel' in v.name ])
+#             cost = cost + config['weight_decay']*lossL2
+#             print('L2 norm, weight decay!')
+#
+#     # print all trainable variables, for debugging
+#     model_vars = [v for v in tf.global_variables()]
+#     for variables in model_vars:
+#         print(variables)
+#
+#     return [x, y_, is_train, y, normalized_y, cost]
+
+# def data_gen(id, audio_repr_path, gt, pack):
+#
+#     [config, sampling, param_sampling, augmentation] = pack
+#
+#     # load audio representation -> audio_repr shape: NxM
+#     audio_rep = pickle.load(open(config_file.DATA_FOLDER + audio_repr_path, 'rb'))
+#     if config['pre_processing'] == 'logEPS':
+#         audio_rep = np.log10(audio_rep + np.finfo(float).eps)
+#     elif config['pre_processing'] == 'logC':
+#         audio_rep = np.log10(10000 * audio_rep + 1)
+#
+#     # let's deliver some data!
+#     last_frame = int(audio_rep.shape[0]) - int(config['xInput']) + 1
+#     if sampling == 'random':
+#         for i in range(0, param_sampling):
+#             time_stamp = random.randint(0,last_frame-1)
+#             yield dict(X = audio_rep[time_stamp : time_stamp+config['xInput'], : ], Y = gt, ID = id)
+#
+#     elif sampling == 'overlap_sampling':
+#         for time_stamp in range(0, last_frame, param_sampling):
+#             yield dict(X = audio_rep[time_stamp : time_stamp+config['xInput'], : ], Y = gt, ID = id)
+#
 # if __name__ == '__main__':
 #
 #     # load config parameters defined in 'config_file.py'
