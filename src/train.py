@@ -41,6 +41,8 @@ class ImageDataset(Dataset):
         # load from `.pk` file
         img_file = open(img_path, 'rb')
         image = pk.load(img_file)
+        image = image.astype(np.float32) # `preprocess_librosa.py` saves as np.float16.
+        # TODO: change to np.float32 if performance is bad.
         label = self.id2gt[str(id)]
         if self.transform:
             image = self.transform(image)
