@@ -10,29 +10,33 @@ class Dieleman(nn.Module):
         """
         super().__init__()
         self.bn = nn.BatchNorm2d(1)
-        self.conv_stack = nn.Sequential(
+        self.conv1_stack = nn.Sequential(
             nn.Conv2d(kernel_size = (8, config["yInput"]),
                       in_channels = 1,
                       out_channels = 32,
                       padding='valid'
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=(4,1), stride=(4,1)),
+            nn.MaxPool2d(kernel_size=(4,1), stride=(4,1))
+            )
+        self.final_stack = nn.Sequential(
             nn.Conv2d(kernel_size = (8, 32),
-                      in_channels=32,
+                      in_channels=1,
                       out_channels=32,
                       padding='valid'
             ),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(4,1), stride=(4,1)),
-            nn.Linear(in_features=44, out_features=100),
+            nn.LazyLinear(out_features=100),
             nn.ReLU(),
             nn.Linear(in_features=100, out_features=config['num_classes_dataset'])
         )
 
     def forward(self, x):
         output = self.bn(x)
-        output = self.conv_stack(output)
+        output = self.conv1_stack(output)
+        output = torch.reshape(output, (-1, output.shape[3], output.shape[2], output.shape[1]))
+        output = self.final_stack(output)
         return output
 
 #def dieleman(x, is_training, config):
