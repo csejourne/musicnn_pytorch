@@ -9,18 +9,20 @@ class Dieleman(nn.Module):
         - Batch Normalization (BN) -> Conv2D
         """
         super().__init__()
-        pass
-        self.bn = nn.BatchNorm2d(3)
+        self.bn = nn.BatchNorm2d(1)
         self.conv_stack = nn.Sequential(
             nn.Conv2d(kernel_size = (8, config["yInput"]),
-                      in_channels = 3,
-                      out_channels = 32
+                      in_channels = 1,
+                      out_channels = 32,
+                      padding='valid'
             ),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(4,1), stride=(4,1)),
             nn.Conv2d(kernel_size = (8, 32),
                       in_channels=32,
-                      out_channels=32),
+                      out_channels=32,
+                      padding='valid'
+            ),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(4,1), stride=(4,1)),
             nn.Linear(in_features=44, out_features=100),
@@ -29,7 +31,8 @@ class Dieleman(nn.Module):
         )
 
     def forward(self, x):
-        output = self.conv_stack(x)
+        output = self.bn(x)
+        output = self.conv_stack(output)
         return output
 
 #def dieleman(x, is_training, config):
