@@ -13,6 +13,7 @@ import pickle as pk
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # TODO:
 # - add preprocessing of the data `np.log(blabla)`
