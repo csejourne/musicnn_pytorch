@@ -20,7 +20,8 @@ from torch import nn
 # - add validation loop
 
 class ImageDataset(Dataset):
-    def __init__(self, data_folder, file_index, file_ground_truth, transform=None, target_transform=None):
+    def __init__(self, data_folder, file_index, file_ground_truth, config, transform=None, target_transform=None):
+        self.config = config
         self.data_folder = data_folder
         self.ids, self.id2gt = shared.load_id2gt(file_ground_truth) # `ids` are `str`
         # 3 cols: index | freq-time repr as a `.pk` | mp3
@@ -40,11 +41,6 @@ class ImageDataset(Dataset):
     def __getitem__(self, id_torch):
         # WARNING: `id_torch` is handled by `torch` to iterate through the dataset. 
         # it is different from the `id` of the files contained in `index.tsv`.
-        # TODO: add preprocessing of the data like this
-        # if config['pre_processing'] == 'logEPS':
-        #     audio_rep = np.log10(audio_rep + np.finfo(float).eps)
-        # elif config['pre_processing'] == 'logC':
-        #     audio_rep = np.log10(10000 * audio_rep + 1)
         id = self.index.loc[id_torch, 0]
         # convert `img_path` to a `str`
         img_path = self.index.loc[id_torch, 1]
@@ -54,6 +50,10 @@ class ImageDataset(Dataset):
         image = pk.load(img_file)
         image = image.astype(np.float32) # `preprocess_librosa.py` saves as np.float16.
         image = np.expand_dims(image, 0)
+        if self.config['pre_processing'] == 'logEPS':
+            image = np.log10(image + np.finfo(float).eps)
+        elif self.config['pre_processing'] == 'logC':
+            image = np.log10(10000 * image + 1)
         # TODO: change to np.float32 if performance is bad.
         label = torch.Tensor(self.id2gt[str(id)])
         if self.transform:
