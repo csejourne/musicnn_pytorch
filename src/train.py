@@ -97,6 +97,7 @@ def test_loop(dataloader, model, loss_fn):
 
     test_loss /= num_batches
     print(f"Avg loss: {test_loss:>8f} \n")
+    return test_loss
 
 if __name__ == '__main__':
     # load config parameters defined in 'config_file.py'
@@ -157,13 +158,15 @@ if __name__ == '__main__':
     model = models_baselines.Dieleman(config)
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
+    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
 
     for t in range(config['epochs']):
         print(f"Epoch {t+1}\n------------------")
         print(f"\tTraining\n")
         train_loop(train_dataloader, model, loss_fn, optimizer)
         print(f"\tValidating\n")
-        test_loop(train_dataloader, model, loss_fn)
+        val_loss = test_loop(train_dataloader, model, loss_fn)
+        scheduler.step(val_loss)
     print("done")
 
 # def tf_define_model_and_cost(config):
