@@ -14,6 +14,11 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
 
+# TODO:
+# - add preprocessing of the data `np.log(blabla)`
+# - add regularization parameter
+# - add validation loop
+
 class ImageDataset(Dataset):
     def __init__(self, data_folder, file_index, file_ground_truth, transform=None, target_transform=None):
         self.data_folder = data_folder
@@ -23,17 +28,23 @@ class ImageDataset(Dataset):
         # Only keep those relevant to the dataset
         ids_int = [int(id) for id in self.ids]
         self.index = self.index.loc[self.index[0].isin(ids_int)]
-        self.index = self.index.reset_index(drop=True)
-        # Potential transformation
+        # we get indices from 0 to n, important for `id_torch` in `__getitem__`
+        self.index = self.index.reset_index(drop=True) 
+        # Potential transformations
         self.transform = transform
         self.target_transform = target_transform
-    
+
     def __len__(self):
         return len(self.ids)
 
     def __getitem__(self, id_torch):
         # WARNING: `id_torch` is handled by `torch` to iterate through the dataset. 
         # it is different from the `id` of the files contained in `index.tsv`.
+        # TODO: add preprocessing of the data like this
+        # if config['pre_processing'] == 'logEPS':
+        #     audio_rep = np.log10(audio_rep + np.finfo(float).eps)
+        # elif config['pre_processing'] == 'logC':
+        #     audio_rep = np.log10(10000 * audio_rep + 1)
         id = self.index.loc[id_torch, 0]
         # convert `img_path` to a `str`
         img_path = self.index.loc[id_torch, 1]
@@ -44,20 +55,19 @@ class ImageDataset(Dataset):
         image = image.astype(np.float32) # `preprocess_librosa.py` saves as np.float16.
         image = np.expand_dims(image, 0)
         # TODO: change to np.float32 if performance is bad.
-        label = self.id2gt[str(id)]
+        label = torch.Tensor(self.id2gt[str(id)])
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
         return image, label
 
-
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and dropout layers
-    # Unnecessary in this situation but added for best practices
     model.train()
     for batch, (X, y) in enumerate(dataloader):
+        batch_size = y.shape[0]
         # Compute prediction and loss
         pred = model(X)
         loss = loss_fn(pred, y)
@@ -70,6 +80,23 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         if batch % 100 == 0:
             loss, current = loss.item(), batch * batch_size + len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
+def test_loop(dataloader, model, loss_fn):
+    # Set the model to evaluation mode - important for batch normalization and dropout layers
+    model.eval()
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    test_loss = 0
+
+    # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
+    # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+    with torch.no_grad():
+        for X, y in dataloader:
+            pred = model(X)
+            test_loss += loss_fn(pred, y).item()
+
+    test_loss /= num_batches
+    print(f"Avg loss: {test_loss:>8f} \n")
 
 if __name__ == '__main__':
     # load config parameters defined in 'config_file.py'
@@ -129,11 +156,14 @@ if __name__ == '__main__':
     print('\nEXPERIMENT: ', str(experiment_id))
     model = models_baselines.Dieleman(config)
     loss_fn = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=config['learning_rate'])
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
     for t in range(config['epochs']):
         print(f"Epoch {t+1}\n------------------")
+        print(f"\tTraining\n")
         train_loop(train_dataloader, model, loss_fn, optimizer)
+        print(f"\tValidating\n")
+        test_loop(train_dataloader, model, loss_fn)
     print("done")
 
 # def tf_define_model_and_cost(config):
