@@ -148,8 +148,8 @@ if __name__ == '__main__':
     print('\nConfig file saved: ' + str(config))
 
     print('\nCREATE DATASET and DATALOADER')
-    train_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_train)
-    val_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_val)
+    train_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_train, config)
+    val_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_val, config)
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=True)
 
