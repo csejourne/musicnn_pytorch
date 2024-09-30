@@ -51,16 +51,15 @@ config_train = {
         # learning parameters?
         'model_number': 11,                       # number of the model as in models.py
         'load_model': None,                       # set to None or absolute path to the model
-        'epochs': 600,                            # maximum number of epochs before stopping training
-        'batch_size': 32,                         # batch size during training
+        'epochs': 20,                            # maximum number of epochs before stopping training
+        'batch_size': 128,                         # batch size during training
         'weight_decay': 1e-5,                     # None or value for the regularization parameter
         'learning_rate': 0.001,                   # learning rate
-        'optimizer': 'Adam',                      # 'SGD_clip', 'SGD', 'Adam'
-        'patience': 75,                           # divide by two the learning rate after the number of 'patience' epochs (integer)
+        'optimizer': 'Adam',                      # 'SGD', 'Adam'
+        'patience': 5,                           # divide by two the learning rate after the number of 'patience' epochs (integer)
 
         # experiment settings?
         'num_classes_dataset': 50,
-        'val_batch_size': 32
+        'val_batch_size': 128
     }
 }
-

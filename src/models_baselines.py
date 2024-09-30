@@ -1,4 +1,3 @@
-# import tensorflow as tf
 import torch
 from torch import nn
 
@@ -19,14 +18,17 @@ class Dieleman(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(4,1), stride=(4,1))
             )
-        self.final_stack = nn.Sequential(
+        self.conv2_stack = nn.Sequential(
             nn.Conv2d(kernel_size = (8, 32),
                       in_channels=1,
                       out_channels=32,
                       padding='valid'
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=(4,1), stride=(4,1)),
+            nn.MaxPool2d(kernel_size=(4,1), stride=(4,1))
+        )
+        self.final_stack = nn.Sequential(
+            nn.Flatten(),
             nn.LazyLinear(out_features=100),
             nn.ReLU(),
             nn.Linear(in_features=100, out_features=config['num_classes_dataset'])
@@ -36,6 +38,7 @@ class Dieleman(nn.Module):
         output = self.bn(x)
         output = self.conv1_stack(output)
         output = torch.reshape(output, (-1, output.shape[3], output.shape[2], output.shape[1]))
+        output = self.conv2_stack(output)
         output = self.final_stack(output)
         return output
 
