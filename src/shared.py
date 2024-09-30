@@ -1,8 +1,53 @@
 import numpy as np
+import pandas as pd
 from datetime import datetime
 from sklearn import metrics
+from torch.utils.data import Dataset
 import warnings
 warnings.filterwarnings('ignore')
+
+class ImageDataset(Dataset):
+    def __init__(self, data_folder, file_index, file_ground_truth, config, transform=None, target_transform=None):
+        self.config = config
+        self.data_folder = data_folder
+        self.ids, self.id2gt = load_id2gt(file_ground_truth) # `ids` are `str`
+        # 3 cols: index | freq-time repr as a `.pk` | mp3
+        self.index = pd.read_csv(file_index, header=None, sep='\t') # contains all the data
+        # Only keep those relevant to the dataset
+        ids_int = [int(id) for id in self.ids]
+        self.index = self.index.loc[self.index[0].isin(ids_int)]
+        # we get indices from 0 to n, important for `id_torch` in `__getitem__`
+        self.index = self.index.reset_index(drop=True) 
+        # Potential transformations
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.ids)
+
+    def __getitem__(self, id_torch):
+        # WARNING: `id_torch` is handled by `torch` to iterate through the dataset. 
+        # it is different from the `id` of the files contained in `index.tsv`.
+        id = self.index.loc[id_torch, 0]
+        # convert `img_path` to a `str`
+        img_path = self.index.loc[id_torch, 1]
+        img_path = os.path.join(self.data_folder, img_path)
+        # load from `.pk` file
+        img_file = open(img_path, 'rb')
+        image = pk.load(img_file)
+        image = image.astype(np.float32) # `preprocess_librosa.py` saves as np.float16.
+        image = np.expand_dims(image, 0)
+        if self.config['pre_processing'] == 'logEPS':
+            image = np.log10(image + np.finfo(float).eps)
+        elif self.config['pre_processing'] == 'logC':
+            image = np.log10(10000 * image + 1)
+        # TODO: change to np.float32 if performance is bad.
+        label = torch.Tensor(self.id2gt[str(id)])
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            label = self.target_transform(label)
+        return image, label
 
 
 def get_epoch_time():
