@@ -1,6 +1,5 @@
 import argparse
 import json
-import pandas as pd
 import os
 import time
 import random
@@ -10,7 +9,7 @@ import models
 import config_file, shared
 import pickle as pk
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -110,7 +109,7 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=True)
 
     print('\nEXPERIMENT: ', str(experiment_id))
-    model = models.model_number(config['model_number'])
+    model = models.select_model(config)
     loss_fn = nn.BCEWithLogitsLoss()
     if config['optimizer'] == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'],

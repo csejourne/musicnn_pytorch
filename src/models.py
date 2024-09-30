@@ -7,7 +7,7 @@ import models_baselines
 # disabling deprecation warnings (caused by change from tensorflow 1.x to 2.x)
 # tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-def model_number(config):
+def select_model(config):
 
     ############### START BASELINES ###############
     # TODO: modify according to our own experiments
