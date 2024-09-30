@@ -6,8 +6,7 @@ import time
 import random
 import pescador
 import numpy as np
-# import tensorflow as tf
-import models_baselines
+import models
 import config_file, shared
 import pickle as pk
 import torch
@@ -16,52 +15,7 @@ from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # TODO:
-# - add preprocessing of the data `np.log(blabla)`
-# - add regularization parameter
-# - add validation loop
-
-class ImageDataset(Dataset):
-    def __init__(self, data_folder, file_index, file_ground_truth, config, transform=None, target_transform=None):
-        self.config = config
-        self.data_folder = data_folder
-        self.ids, self.id2gt = shared.load_id2gt(file_ground_truth) # `ids` are `str`
-        # 3 cols: index | freq-time repr as a `.pk` | mp3
-        self.index = pd.read_csv(file_index, header=None, sep='\t') # contains all the data
-        # Only keep those relevant to the dataset
-        ids_int = [int(id) for id in self.ids]
-        self.index = self.index.loc[self.index[0].isin(ids_int)]
-        # we get indices from 0 to n, important for `id_torch` in `__getitem__`
-        self.index = self.index.reset_index(drop=True) 
-        # Potential transformations
-        self.transform = transform
-        self.target_transform = target_transform
-
-    def __len__(self):
-        return len(self.ids)
-
-    def __getitem__(self, id_torch):
-        # WARNING: `id_torch` is handled by `torch` to iterate through the dataset. 
-        # it is different from the `id` of the files contained in `index.tsv`.
-        id = self.index.loc[id_torch, 0]
-        # convert `img_path` to a `str`
-        img_path = self.index.loc[id_torch, 1]
-        img_path = os.path.join(self.data_folder, img_path)
-        # load from `.pk` file
-        img_file = open(img_path, 'rb')
-        image = pk.load(img_file)
-        image = image.astype(np.float32) # `preprocess_librosa.py` saves as np.float16.
-        image = np.expand_dims(image, 0)
-        if self.config['pre_processing'] == 'logEPS':
-            image = np.log10(image + np.finfo(float).eps)
-        elif self.config['pre_processing'] == 'logC':
-            image = np.log10(10000 * image + 1)
-        # TODO: change to np.float32 if performance is bad.
-        label = torch.Tensor(self.id2gt[str(id)])
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
-        return image, label
+# - add restoring model
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
@@ -78,7 +32,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         optimizer.step()
         optimizer.zero_grad()
 
-        if batch % 100 == 0:
+        if batch % 10 == 0:
             loss, current = loss.item(), batch * batch_size + len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
@@ -150,15 +104,22 @@ if __name__ == '__main__':
     print('\nConfig file saved: ' + str(config))
 
     print('\nCREATE DATASET and DATALOADER')
-    train_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_train, config)
-    val_dataset = ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_val, config)
+    train_dataset = shared.ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_train, config)
+    val_dataset = shared.ImageDataset(config_file.DATA_FOLDER, file_index, file_ground_truth_val, config)
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=True)
 
     print('\nEXPERIMENT: ', str(experiment_id))
-    model = models_baselines.Dieleman(config)
+    model = models.model_number(config['model_number'])
     loss_fn = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
+    if config['optimizer'] == 'Adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'],
+                                    weight_decay=config['weight_decay'])
+    elif config['optimizer'] == 'SGD':
+        optimizer = torch.optim.SGD(model.parameters(), lr=config['learning_rate'],
+                                    weight_decay=config['weight_decay'])
+    else:
+        raise ValueError("Optimizer method not implemented")
     scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
 
     for t in range(config['epochs']):
@@ -168,7 +129,9 @@ if __name__ == '__main__':
         print(f"\tValidating\n")
         val_loss = test_loop(train_dataloader, model, loss_fn)
         scheduler.step(val_loss)
-    print("done")
+
+    print("SAVING MODEL")
+    torch.save(model.state_dict(), model_folder + 'model_weights.pth')
 
 # def tf_define_model_and_cost(config):
 #     # tensorflow: define the model
