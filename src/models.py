@@ -15,6 +15,9 @@ def select_model(config):
     if config['model_number'] == 0:
         print('\nMODEL: Dieleman | BN input')
         return models_baselines.Dieleman(config)
+    elif config['model_number'] == 1:
+        print('\nMODEL: VGG 32 | BN Input')
+        return ValueError("Model not yet implemented")
     else:
         return ValueError("Model not yet implemented")
 

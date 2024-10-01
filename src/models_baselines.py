@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torchvision.models import vgg16
 
 class Dieleman(nn.Module):
     def __init__(self, config):
@@ -40,6 +41,28 @@ class Dieleman(nn.Module):
         output = torch.reshape(output, (-1, output.shape[3], output.shape[2], output.shape[1]))
         output = self.conv2_stack(output)
         output = self.final_stack(output)
+        return output
+
+class VGG(nn.Module):
+    def __init__(self, config, weights = 'IMAGENET1K_V1'):
+        """
+        Loads the VGG architecture
+            - `config`: see `config_file` for more information.
+            - `weights`: can be None for no-pre-trained model, 'IMAGENET1K_V1' for pre-trained model.
+        """
+        super().__init__()
+        self.features_vgg = vgg16(weights).features
+        # Freeze the parameters
+        for param in self.features_vgg.parameters():
+            param.requires_grad = False
+        # TODO: try to add dropout and all to see if performance improves
+        self.classifier = nn.Sequential(
+            nn.LazyLinear(out_features=config['num_classes_dataset']),
+        )
+
+    def forward(self, x):
+        output = self.features_vgg(x)
+        output = self.classifier(output)
         return output
 
 #def dieleman(x, is_training, config):
@@ -351,5 +374,3 @@ class Dieleman(nn.Module):
 #    	                     units=config['num_classes_dataset'], 
 #    	                     kernel_initializer=tf.contrib.layers.variance_scaling_initializer())
 #    return output
-
-    
