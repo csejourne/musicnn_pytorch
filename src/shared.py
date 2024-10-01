@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import torch
+import pickle as pk
+import os
 from datetime import datetime
 from sklearn import metrics
 from torch.utils.data import Dataset
@@ -35,6 +38,7 @@ class ImageDataset(Dataset):
         # load from `.pk` file
         img_file = open(img_path, 'rb')
         image = pk.load(img_file)
+        img_file.close()
         image = image.astype(np.float32) # `preprocess_librosa.py` saves as np.float16.
         image = np.expand_dims(image, 0)
         if self.config['pre_processing'] == 'logEPS':
@@ -54,9 +58,9 @@ def get_epoch_time():
     return int((datetime.now() - datetime(1970,1,1)).total_seconds())
 
 
-def count_params(trainable_variables):
-    # to return number of trainable variables. Example: shared.count_params(tf.trainable_variables()))
-    return np.sum([np.prod(v.get_shape().as_list()) for v in trainable_variables])
+# def count_params(trainable_variables):
+#     # to return number of trainable variables. Example: shared.count_params(tf.trainable_variables()))
+#     return np.sum([np.prod(v.get_shape().as_list()) for v in trainable_variables])
 
 
 def load_id2gt(gt_file):
