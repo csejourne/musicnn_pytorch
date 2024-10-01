@@ -36,6 +36,7 @@ DATASET = 'mtt' # 'mtt' or 'msd'
 config_train = {
     'spec': {
         'name_run': '',
+
         # which data?
         'audio_representation_folder': 'audio_representation/'+DATASET+'__time-freq/',
         'gt_train': 'index/'+DATASET+'/train_gt_'+DATASET+'.tsv',
@@ -49,9 +50,10 @@ config_train = {
         'param_train_sampling': 1,                # if mode_sampling='overlap_sampling': param_sampling=hop_size
                                                   # if mode_sampling='random': param_sampling=number of samples
         # learning parameters?
-        'model_number': 11,                       # number of the model as in models.py
-        'load_model': None,                       # set to None or absolute path to the model
-        'epochs': 20,                            # maximum number of epochs before stopping training
+        'model_number': 0,                       # number of the model as in models.py
+        # 'load_model': None,                       # set to None or absolute path to the model
+        'load_model': DATA_FOLDER + 'experiments/' + '1727737664spec' + '/', # set to None or absolute path to the model
+        'epochs': 50,                            # maximum number of epochs before stopping training
         'batch_size': 128,                         # batch size during training
         'weight_decay': 1e-5,                     # None or value for the regularization parameter
         'learning_rate': 0.001,                   # learning rate

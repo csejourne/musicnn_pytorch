@@ -14,7 +14,6 @@ from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # TODO:
-# - add restoring model
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
@@ -110,6 +109,11 @@ if __name__ == '__main__':
 
     print('\nEXPERIMENT: ', str(experiment_id))
     model = models.select_model(config)
+    # Restore model weights from previously saved model 
+    # Only weights so be careful that model type matches the loaded model
+    if config['load_model'] != None: 
+        model.load_state_dict(torch.load(config['load_model'] + 'model_weights.pth', weights_only=True))
+        print('Pre-trained model loaded from ', config['load_model'])
     loss_fn = nn.BCEWithLogitsLoss()
     if config['optimizer'] == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'],
@@ -122,7 +126,7 @@ if __name__ == '__main__':
     scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
 
     for t in range(config['epochs']):
-        print(f"Epoch {t+1}\n------------------")
+        print("Epoch: ", t+1, "/", config['epochs'], "\n------------------")
         print(f"\tTraining\n")
         train_loop(train_dataloader, model, loss_fn, optimizer)
         print(f"\tValidating\n")
