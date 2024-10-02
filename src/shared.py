@@ -12,10 +12,12 @@ warnings.filterwarnings('ignore')
 
 
 
-class NLBlockND(nn.Module):
+class NLBlockND(torch.nn.Module):
     def __init__(self, in_channels, inter_channels=None, mode='embedded', 
                  dimension=3, bn_layer=True):
         """Implementation of Non-Local Block with 4 different pairwise functions but doesn't include subsampling trick
+        Comes from: Non-Local Neural network (https://arxiv.org/abs/1711.07971) and implemented by
+        https://github.com/tea1528/Non-Local-NN-Pytorch/blob/master/models/non_local.py
         args:
             in_channels: original channel size (1024 in the paper)
             inter_channels: channel size inside the block if not specifed reduced to half (512 in the paper)
