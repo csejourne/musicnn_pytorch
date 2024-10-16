@@ -38,6 +38,7 @@ class Dieleman(nn.Module):
     def forward(self, x):
         output = self.bn(x)
         output = self.conv1_stack(output)
+        ##output = torch.reshape(output, (-1, output.shape[3], output.shape[2], output.shape[1]))
         output = output.permute(0, 3, 2, 1)
         output = self.conv2_stack(output)
         output = self.final_stack(output)

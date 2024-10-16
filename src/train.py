@@ -123,7 +123,7 @@ if __name__ == '__main__':
                                     weight_decay=config['weight_decay'])
     else:
         raise ValueError("Optimizer method not implemented")
-    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
+    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=config['patience'])
 
     for t in range(config['epochs']):
         print("Epoch: ", t+1, "/", config['epochs'], "\n------------------")
@@ -133,8 +133,10 @@ if __name__ == '__main__':
         val_loss = test_loop(train_dataloader, model, loss_fn)
         scheduler.step(val_loss)
 
-    print("SAVING MODEL")
+    print("\nSAVING MODEL")
     torch.save(model.state_dict(), model_folder + 'model_weights.pth')
+
+    print('\nEVALUATE EXPERIMENT -> '+ str(experiment_id))
 
 # def tf_define_model_and_cost(config):
 #     # tensorflow: define the model

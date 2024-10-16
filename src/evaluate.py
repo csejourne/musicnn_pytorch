@@ -28,11 +28,13 @@ def evaluation(dataloader, model, loss_fn):
     with torch.no_grad():
         for X, y in dataloader:
             preds_batch = model(X)
+            # Non-normalized `preds_batch` as the loss we use has a `sigmoid` layer.
             test_loss += loss_fn(preds_batch, y).item()
             preds.append(preds_batch)
             ground_truth.append(y)
     test_loss /= num_batches
     preds = torch.concatenate(preds)
+    # Normalize the predictions.
     preds = nn.Sigmoid()(preds)
     ground_truth = torch.concatenate(ground_truth)
     return preds, ground_truth, test_loss
@@ -45,13 +47,6 @@ if __name__ == '__main__':
     parser.add_argument('-l','--list', nargs='+', help='List of models to evaluate', required=True)
     args = parser.parse_args()
     models_list = args.list
-
-    # load all audio representation paths
-    [audio_repr_paths, id2audio_repr_path] = shared.load_id2path(FILE_INDEX)
-
-    # load ground truth
-    [ids, id2gt] = shared.load_id2gt(FILE_GROUND_TRUTH_TEST)
-    print('# Test set', len(ids))
 
     for i, model in enumerate(models_list):
 

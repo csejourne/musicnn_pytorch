@@ -52,8 +52,8 @@ config_train = {
         # learning parameters?
         'model_number': 0,                       # number of the model as in models.py
         # 'load_model': None,                       # set to None or absolute path to the model
-        'load_model': DATA_FOLDER + 'experiments/' + '1727737664spec' + '/', # set to None or absolute path to the model
-        'epochs': 50,                            # maximum number of epochs before stopping training
+        'load_model': DATA_FOLDER + 'experiments/' + '1727905259spec' + '/', # set to None or absolute path to the model
+        'epochs': 75,                            # maximum number of epochs before stopping training
         'batch_size': 128,                         # batch size during training
         'weight_decay': 1e-5,                     # None or value for the regularization parameter
         'learning_rate': 0.001,                   # learning rate

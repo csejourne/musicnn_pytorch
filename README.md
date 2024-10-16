@@ -1,8 +1,8 @@
 # musicnn-training
 
-In this repository you will find the Tensorflow code for training deep convolutional neural networks for audio-tagging.
+In this repository you will find the Pytorch code for training deep convolutional neural networks for audio-tagging.
 
-We employed this code for training [musicnn](https://github.com/jordipons/musicnn/), a set of pre-trained deep convolutional neural networks for music audio tagging.
+This repository has been forked from [musicnn](https://github.com/jordipons/musicnn/) which uses Tensorflow V1. The present repository aims to port this `tensorflow v1` code to `pytorch`.
 
 
 ## Installation:
@@ -10,7 +10,9 @@ We employed this code for training [musicnn](https://github.com/jordipons/musicn
 
 Create a python3 virtual environment `python3 -m venv env`, activate it `source ./env/bin/activate`, and install the dependencies `pip install -r requirements.txt`
 
-Install tensorflow for CPU `pip install tensorflow==1.14.0` or for CUDA-enabled GPU `pip install tensorflow-gpu==1.14.0`. Note this code was developed following Tensorflow 1 API, not Tensorflow 2.
+TODO: add information on how to install with `pyenv` to handle Python versioning.
+
+This code uses PyTorch, unlike the repo [musicnn](https://github.com/jordipons/musicnn/) which uses Tensorflow V1.
 
 ## Usage
 

@@ -1,4 +1,3 @@
-# import tensorflow as tf
 # import models_frontend as frontend
 # import models_midend as midend
 # import models_backend as backend
@@ -17,7 +16,7 @@ def select_model(config):
         return models_baselines.Dieleman(config)
     elif config['model_number'] == 1:
         print('\nMODEL: VGG 32 | BN Input')
-        return ValueError("Model not yet implemented")
+        return models_baselines.VGG(config)
     else:
         return ValueError("Model not yet implemented")
 
@@ -106,9 +105,3 @@ def select_model(config):
 #         # 3.8M params | ROC-AUC: 90.21 | PR-AUC: 37.17 | VAL-COST: 0.1341
 #
 #     raise RuntimeError("ERROR: Model {} can't be found!".format(config["model_number"]))
-
-
-
-
-
-
