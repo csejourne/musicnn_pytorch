@@ -6,7 +6,7 @@ This repository has been forked from [musicnn](https://github.com/jordipons/musi
 
 
 ## Installation:
-`git clone https://github.com/jordipons/musicnn-training.git`
+`git clone https://github.com/csejourne/musicnn_pytorch.git`
 
 Create a python3 virtual environment `python3 -m venv env`, activate it `source ./env/bin/activate`, and install the dependencies `pip install -r requirements.txt`
 
